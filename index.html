@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homework Tracker - ระบบบันทึกและเตือนการบ้านมัธยม</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Prompt & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 for modern dialogs -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Tailwind Custom Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Prompt', 'Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f3ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            min-height: 100vh;
+            color: #f8fafc;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-modal {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .glow-effect {
+            box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.3);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.5);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.8);
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen text-slate-100 antialiased pb-12">
+
+    <!-- Top Navigation Header -->
+    <header class="sticky top-0 z-40 glass-card border-b border-slate-700/50 mb-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-lg glow-effect">
+                    <i class="fa-solid fa-graduation-cap text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-indigo-400">StudyPulse</h1>
+                    <p class="text-xs text-indigo-300/80 font-light">ระบบบันทึก & เตือนการบ้านมัธยม</p>
+                </div>
+            </div>
+
+            <!-- Header Action Buttons -->
+            <div class="flex items-center space-x-2 sm:space-x-4">
+                <button id="btnGasGuide" class="px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl glass-card hover:bg-slate-700/60 text-xs sm:text-sm font-medium transition flex items-center space-x-2 border border-slate-600/40 text-indigo-300">
+                    <i class="fa-solid fa-code text-indigo-400"></i>
+                    <span class="hidden sm:inline">เชื่อมต่อ Google Apps Script</span>
+                </button>
+                <button id="btnOpenAddModal" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-indigo-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center space-x-2">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>เพิ่มการบ้าน</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex-1 w-full space-y-6">
+
+        <!-- Stats Dashboard -->
+        <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="glass-card rounded-2xl p-4 sm:p-5 flex items-center justify-between border-l-4 border-l-indigo-500">
+                <div>
+                    <p class="text-xs sm:text-sm text-slate-400 font-medium">การบ้านทั้งหมด</p>
+                    <h3 id="statTotal" class="text-2xl sm:text-3xl font-bold text-white mt-1">0</h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-book-bookmark"></i>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-4 sm:p-5 flex items-center justify-between border-l-4 border-l-amber-500">
+                <div>
+                    <p class="text-xs sm:text-sm text-slate-400 font-medium">ค้างส่ง (Pending)</p>
+                    <h3 id="statPending" class="text-2xl sm:text-3xl font-bold text-amber-400 mt-1">0</h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-4 sm:p-5 flex items-center justify-between border-l-4 border-l-rose-500">
+                <div>
+                    <p class="text-xs sm:text-sm text-slate-400 font-medium">ด่วน / เกินกำหนด</p>
+                    <h3 id="statUrgent" class="text-2xl sm:text-3xl font-bold text-rose-400 mt-1">0</h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-4 sm:p-5 flex items-center justify-between border-l-4 border-l-emerald-500">
+                <div>
+                    <p class="text-xs sm:text-sm text-slate-400 font-medium">เสร็จสิ้นแล้ว</p>
+                    <h3 id="statCompleted" class="text-2xl sm:text-3xl font-bold text-emerald-400 mt-1">0</h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- Controls & Filters Toolbar -->
+        <section class="glass-card rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+            <!-- Search Input -->
+            <div class="relative w-full md:w-80">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                <input type="text" id="searchInput" placeholder="ค้นหาการบ้าน, วิชา, รายละเอียด..." 
+                    class="w-full pl-10 pr-4 py-2.5 bg-slate-900/60 rounded-xl border border-slate-700/80 focus:outline-none focus:border-indigo-500 text-sm placeholder-slate-500 text-white transition">
+            </div>
+
+            <!-- Filter Badges / Selectors -->
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <!-- Subject Filter -->
+                <select id="filterSubject" class="bg-slate-900/60 border border-slate-700/80 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                    <option value="">ทุกวิชา</option>
+                    <option value="คณิตศาสตร์">คณิตศาสตร์</option>
+                    <option value="วิทยาศาสตร์">วิทยาศาสตร์ / ฟิสิกส์ / เคมี / ชีวะ</option>
+                    <option value="ภาษาไทย">ภาษาไทย</option>
+                    <option value="ภาษาอังกฤษ">ภาษาอังกฤษ</option>
+                    <option value="สังคมศึกษา">สังคมศึกษา / ประวัติศาสตร์</option>
+                    <option value="คอมพิวเตอร์">คอมพิวเตอร์ / เทคโนโลยี</option>
+                    <option value="ศิลปะ">ศิลปะ / ดนตรี</option>
+                    <option value="การงานอาชีพ">การงานอาชีพ</option>
+                    <option value="อื่นๆ">อื่นๆ</option>
+                </select>
+
+                <!-- Status Filter -->
+                <select id="filterStatus" class="bg-slate-900/60 border border-slate-700/80 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                    <option value="ALL">สถานะทั้งหมด</option>
+                    <option value="PENDING" selected>เฉพาะค้างส่ง</option>
+                    <option value="COMPLETED">ส่งแล้ว/เสร็จแล้ว</option>
+                </select>
+
+                <!-- Sync Button -->
+                <button id="btnRefresh" title="ดึงข้อมูลใหม่" class="p-2.5 rounded-xl glass-card hover:bg-slate-700/60 text-slate-300 hover:text-white transition">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- Homework Cards Container -->
+        <section id="homeworkGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Dynamic Content Injected Here -->
+        </section>
+
+        <!-- Empty State View -->
+        <div id="emptyState" class="hidden glass-card rounded-3xl p-12 text-center my-8 max-w-md mx-auto">
+            <div class="w-20 h-20 bg-indigo-500/10 text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                <i class="fa-solid fa-clipboard-check"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-white">ไม่พบรายการการบ้าน</h3>
+            <p class="text-sm text-slate-400 mt-1">ไม่มีรายการที่ตรงกับเงื่อนไข หรือยังไม่ได้บันทึกการบ้านใหม่</p>
+            <button id="btnEmptyStateAdd" class="mt-6 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium transition">
+                + เพิ่มการบ้านใหม่เลย
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Modal: Add / Edit Homework -->
+    <div id="homeworkModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden transition-opacity duration-300">
+        <div class="glass-modal w-full max-w-lg rounded-3xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto shadow-2xl relative border border-slate-700/60">
+            <!-- Close Modal Icon -->
+            <button id="btnCloseModal" class="absolute top-5 right-5 text-slate-400 hover:text-white w-8 h-8 rounded-full bg-slate-800/60 flex items-center justify-center transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center space-x-3 mb-6">
+                <div class="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </div>
+                <div>
+                    <h2 id="modalTitle" class="text-xl font-bold text-white">บันทึกการบ้านใหม่</h2>
+                    <p class="text-xs text-slate-400">กรอกข้อมูลการบ้านและอัปโหลดรูปภาพโจทย์</p>
+                </div>
+            </div>
+
+            <form id="homeworkForm" class="space-y-4">
+                <input type="hidden" id="homeworkId">
+
+                <!-- Title -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">หัวข้อ / งานที่สั่ง <span class="text-rose-400">*</span></label>
+                    <input type="text" id="inputTitle" required placeholder="เช่น สรุปแบบฝึกหัดเรื่องแคลคูลัส หน้า 45" 
+                        class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition">
+                </div>
+
+                <!-- Subject & Priority Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">กลุ่มสาระ / วิชา <span class="text-rose-400">*</span></label>
+                        <select id="inputSubject" required class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition">
+                            <option value="">-- เลือกวิชา --</option>
+                            <option value="คณิตศาสตร์">คณิตศาสตร์</option>
+                            <option value="วิทยาศาสตร์">วิทยาศาสตร์ / ฟิสิกส์ / เคมี / ชีวะ</option>
+                            <option value="ภาษาไทย">ภาษาไทย</option>
+                            <option value="ภาษาอังกฤษ">ภาษาอังกฤษ</option>
+                            <option value="สังคมศึกษา">สังคมศึกษา / ประวัติศาสตร์</option>
+                            <option value="คอมพิวเตอร์">คอมพิวเตอร์ / เทคโนโลยี</option>
+                            <option value="ศิลปะ">ศิลปะ / ดนตรี</option>
+                            <option value="การงานอาชีพ">การงานอาชีพ</option>
+                            <option value="อื่นๆ">อื่นๆ</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">ระดับความสำคัญ</label>
+                        <select id="inputPriority" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition">
+                            <option value="NORMAL">ปกติ 🟢</option>
+                            <option value="HIGH">สำคัญ / งานใหญ่ 🟡</option>
+                            <option value="URGENT">ด่วนที่สุด! 🔴</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Due Date & Time -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">กำหนดส่ง (วัน-เดือน-ปี) <span class="text-rose-400">*</span></label>
+                        <input type="date" id="inputDueDate" required class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">เวลาที่ต้องส่ง</label>
+                        <input type="time" id="inputDueTime" value="23:59" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition">
+                    </div>
+                </div>
+
+                <!-- Detail / Description -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">รายละเอียดเพิ่มเติม</label>
+                    <textarea id="inputDescription" rows="3" placeholder="ระบุเลขข้อ, คำสั่งอาจารย์ หรือช่องทางการส่งงาน..." 
+                        class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition resize-none"></textarea>
+                </div>
+
+                <!-- Image Upload Field (Google Drive Integration) -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">แนบรูปใบงาน / โจทย์ (จัดเก็บเข้า Google Drive)</label>
+                    <div class="border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-2xl p-4 text-center cursor-pointer transition bg-slate-900/40 relative">
+                        <input type="file" id="inputImage" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+                        <div id="uploadPlaceholder" class="space-y-1">
+                            <i class="fa-solid fa-cloud-arrow-up text-2xl text-indigo-400"></i>
+                            <p class="text-xs text-slate-300 font-medium">คลิกหรือลากรูปมาวางที่นี่</p>
+                            <p class="text-[10px] text-slate-500">รองรับ JPG, PNG (ขนาดไม่เกิน 5MB)</p>
+                        </div>
+                        <div id="imagePreviewContainer" class="hidden relative inline-block mt-2">
+                            <img id="imagePreview" src="" alt="Preview" class="max-h-36 rounded-lg shadow border border-slate-700">
+                            <button type="button" id="btnRemoveImage" class="absolute -top-2 -right-2 bg-rose-500 text-white w-6 h-6 rounded-full text-xs flex items-center justify-center hover:bg-rose-600 shadow">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-4 flex items-center justify-end space-x-3">
+                    <button type="button" id="btnCancelForm" class="px-5 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" id="btnSubmitForm" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold shadow-lg shadow-indigo-500/30 transition flex items-center space-x-2">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>บันทึกข้อมูล</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: GAS API Setup Guide -->
+    <div id="gasModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden transition-opacity duration-300">
+        <div class="glass-modal w-full max-w-2xl rounded-3xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto shadow-2xl relative border border-slate-700/60">
+            <button id="btnCloseGasModal" class="absolute top-5 right-5 text-slate-400 hover:text-white w-8 h-8 rounded-full bg-slate-800/60 flex items-center justify-center transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-server"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-white">เชื่อมต่อ Google Apps Script & Google Sheet</h2>
+                    <p class="text-xs text-slate-400">วิธีติดตั้งระบบ Backend เพื่อเก็บบันทึกข้อมูลลง Google Sheet และ Drive</p>
+                </div>
+            </div>
+
+            <div class="space-y-4 text-xs sm:text-sm text-slate-300">
+                <!-- Step 1 -->
+                <div class="p-4 bg-slate-900/80 rounded-2xl border border-slate-800">
+                    <h4 class="font-semibold text-indigo-300 mb-1">ขั้นตอนที่ 1: ตั้งค่า URL ของ Web App</h4>
+                    <p class="text-slate-400 text-xs mb-3">วางลิงก์ Web App URL ที่ได้จาก Google Apps Script Deployment</p>
+                    <div class="flex gap-2">
+                        <input type="text" id="gasApiUrlInput" placeholder="https://script.google.com/macros/s/.../exec" 
+                            class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                        <button id="btnSaveGasUrl" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium text-xs transition">
+                            บันทึก URL
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2: GAS Code Generator -->
+                <div class="p-4 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-semibold text-indigo-300">ขั้นตอนที่ 2: โค้ด Google Apps Script (Code.gs)</h4>
+                        <button id="btnCopyGasCode" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded-lg text-xs font-medium border border-indigo-500/30 transition flex items-center space-x-1">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>คัดลอกโค้ด</span>
+                        </button>
+                    </div>
+                    <p class="text-slate-400 text-xs">นำโค้ดด้านล่างนี้ไปวางใน Google Apps Script Editor (สคริปต์จะสร้าง Sheet ใหม่ และเตรียมหัวตารางให้อัตโนมัติ):</p>
+                    <pre class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] font-mono text-emerald-400 overflow-x-auto max-h-48 scrollbar-thin">
+// ==========================================
+// Google Apps Script Backend for Homework Tracker
+// ==========================================
+const SHEET_NAME = "Homework_Data";
+const DRIVE_FOLDER_NAME = "Homework_Attachments";
+
+function setupSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NAME);
+  }
+  
+  // สร้างหัวตารางถ้ายังไม่มีข้อมูล
+  if (sheet.getLastRow() === 0) {
+    const headers = [
+      "ID", "Title", "Subject", "Priority", 
+      "DueDate", "DueTime", "Description", 
+      "ImageUrl", "Status", "CreatedAt"
+    ];
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length)
+         .setFontWeight("bold")
+         .setBackground("#4F46E5")
+         .setFontColor("#FFFFFF");
+  }
+  return sheet;
+}
+
+function doGet(e) {
+  const sheet = setupSheet();
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const rows = data.slice(1);
+  
+  const result = rows.map(row => {
+    let obj = {};
+    headers.forEach((h, i) => {
+      obj[h] = row[i];
+    });
+    return obj;
+  });
+
+  return ContentService.createTextOutput(JSON.stringify({ status: "success", data: result }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  try {
+    const body = JSON.parse(e.postData.contents);
+    const sheet = setupSheet();
+    const action = body.action;
+
+    if (action === "ADD") {
+      let imageUrl = "";
+      if (body.image) {
+        imageUrl = saveImageToDrive(body.image.base64, body.image.fileName, body.image.mimeType);
+      }
+      const newRow = [
+        body.id, body.title, body.subject, body.priority,
+        body.dueDate, body.dueTime, body.description,
+        imageUrl, "PENDING", new Date().toISOString()
+      ];
+      sheet.appendRow(newRow);
+      return responseJSON({ status: "success", message: "Added successfully", imageUrl: imageUrl });
+    }
+
+    if (action === "UPDATE_STATUS") {
+      const data = sheet.getDataRange().getValues();
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0] == body.id) {
+          sheet.getRange(i + 1, 9).setValue(body.status); // Column 9 = Status
+          break;
+        }
+      }
+      return responseJSON({ status: "success", message: "Status updated" });
+    }
+
+    if (action === "DELETE") {
+      const data = sheet.getDataRange().getValues();
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0] == body.id) {
+          sheet.deleteRow(i + 1);
+          break;
+        }
+      }
+      return responseJSON({ status: "success", message: "Deleted successfully" });
+    }
+
+  } catch (error) {
+    return responseJSON({ status: "error", message: error.toString() });
+  }
+}
+
+function saveImageToDrive(base64Data, fileName, mimeType) {
+  let folder;
+  const folders = DriveApp.getFoldersByName(DRIVE_FOLDER_NAME);
+  if (folders.hasNext()) {
+    folder = folders.next();
+  } else {
+    folder = DriveApp.createFolder(DRIVE_FOLDER_NAME);
+  }
+  
+  const decoded = Utilities.base64Decode(base64Data.split(',')[1]);
+  const blob = Utilities.newBlob(decoded, mimeType, fileName);
+  const file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  
+  return "https://lh3.googleusercontent.com/d/" + file.getId();
+}
+
+function responseJSON(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        let homeworkList = [];
+        let apiUrl = localStorage.getItem('GAS_API_URL') || '';
+        let base64ImageData = null;
+
+        // Subject Colors Configuration
+        const subjectBadgeStyle = {
+            'คณิตศาสตร์': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+            'วิทยาศาสตร์': 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+            'ภาษาไทย': 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+            'ภาษาอังกฤษ': 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+            'สังคมศึกษา': 'bg-orange-500/20 text-orange-300 border-orange-500/30',
+            'คอมพิวเตอร์': 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+            'ศิลปะ': 'bg-pink-500/20 text-pink-300 border-pink-500/30',
+            'การงานอาชีพ': 'bg-teal-500/20 text-teal-300 border-teal-500/30',
+            'อื่นๆ': 'bg-slate-500/20 text-slate-300 border-slate-500/30'
+        };
+
+        // Initialize App on DOM Load
+        document.addEventListener('DOMContentLoaded', () => {
+            initEventListeners();
+            loadHomeworkData();
+            if (apiUrl) {
+                document.getElementById('gasApiUrlInput').value = apiUrl;
+            }
+        });
+
+        function initEventListeners() {
+            // Modal Open/Close
+            document.getElementById('btnOpenAddModal').addEventListener('click', () => openModal());
+            document.getElementById('btnEmptyStateAdd').addEventListener('click', () => openModal());
+            document.getElementById('btnCloseModal').addEventListener('click', closeModal);
+            document.getElementById('btnCancelForm').addEventListener('click', closeModal);
+
+            // GAS Setup Modal
+            document.getElementById('btnGasGuide').addEventListener('click', () => {
+                document.getElementById('gasModal').classList.remove('hidden');
+            });
+            document.getElementById('btnCloseGasModal').addEventListener('click', () => {
+                document.getElementById('gasModal').classList.add('hidden');
+            });
+            document.getElementById('btnSaveGasUrl').addEventListener('click', saveGasUrl);
+            document.getElementById('btnCopyGasCode').addEventListener('click', copyGasCode);
+
+            // Form Submissions & Inputs
+            document.getElementById('homeworkForm').addEventListener('submit', handleFormSubmit);
+            document.getElementById('inputImage').addEventListener('change', handleImageUpload);
+            document.getElementById('btnRemoveImage').addEventListener('click', clearImageUpload);
+
+            // Search & Filter
+            document.getElementById('searchInput').addEventListener('input', renderHomeworkList);
+            document.getElementById('filterSubject').addEventListener('change', renderHomeworkList);
+            document.getElementById('filterStatus').addEventListener('change', renderHomeworkList);
+            document.getElementById('btnRefresh').addEventListener('click', loadHomeworkData);
+        }
+
+        // Fetch Homework Data from GAS or LocalStorage Backup
+        async function loadHomeworkData() {
+            if (!apiUrl) {
+                // Load mock/local data if API is not set up
+                const localData = localStorage.getItem('MOCK_HOMEWORK_DATA');
+                if (localData) {
+                    homeworkList = JSON.parse(localData);
+                } else {
+                    homeworkList = getSampleData();
+                    saveLocalBackup();
+                }
+                renderHomeworkList();
+                updateStats();
+                return;
+            }
+
+            Swal.fire({
+                title: 'กำลังโหลดข้อมูล...',
+                text: 'ดึงข้อมูลจาก Google Sheet',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            try {
+                const response = await fetch(apiUrl);
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    homeworkList = result.data.map(item => ({
+                        id: item.ID || item.id,
+                        title: item.Title || item.title,
+                        subject: item.Subject || item.subject,
+                        priority: item.Priority || item.priority,
+                        dueDate: formatDateString(item.DueDate || item.dueDate),
+                        dueTime: item.DueTime || item.dueTime || '23:59',
+                        description: item.Description || item.description,
+                        imageUrl: item.ImageUrl || item.imageUrl,
+                        status: item.Status || item.status || 'PENDING'
+                    }));
+                    saveLocalBackup();
+                    renderHomeworkList();
+                    updateStats();
+                    Swal.close();
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (err) {
+                console.error('Error loading data:', err);
+                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อ Google Sheet ได้ ระบบจะแสดงข้อมูลในเครื่องแทน', 'warning');
+                const localData = localStorage.getItem('MOCK_HOMEWORK_DATA');
+                if (localData) homeworkList = JSON.parse(localData);
+                renderHomeworkList();
+                updateStats();
+            }
+        }
+
+        // Save New Homework
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+
+            const newItem = {
+                id: 'HW_' + Date.now(),
+                title: document.getElementById('inputTitle').value.trim(),
+                subject: document.getElementById('inputSubject').value,
+                priority: document.getElementById('inputPriority').value,
+                dueDate: document.getElementById('inputDueDate').value,
+                dueTime: document.getElementById('inputDueTime').value,
+                description: document.getElementById('inputDescription').value.trim(),
+                imageUrl: '',
+                status: 'PENDING'
+            };
+
+            closeModal();
+
+            if (apiUrl) {
+                Swal.fire({
+                    title: 'กำลังบันทึกข้อมูล...',
+                    text: base64ImageData ? 'กำลังอัปโหลดรูปเข้า Google Drive...' : 'กำลังบันทึกลง Google Sheet...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                try {
+                    const payload = {
+                        action: 'ADD',
+                        ...newItem,
+                        image: base64ImageData ? {
+                            base64: base64ImageData.data,
+                            fileName: base64ImageData.fileName,
+                            mimeType: base64ImageData.mimeType
+                        } : null
+                    };
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        mode: 'cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const resData = await response.json();
+                    if (resData.status === 'success') {
+                        if (resData.imageUrl) newItem.imageUrl = resData.imageUrl;
+                        homeworkList.unshift(newItem);
+                        saveLocalBackup();
+                        renderHomeworkList();
+                        updateStats();
+                        Swal.fire('สำเร็จ!', 'บันทึกการบ้านเรียบร้อยแล้ว', 'success');
+                    } else {
+                        throw new Error(resData.message);
+                    }
+                } catch (err) {
+                    console.error('Save error:', err);
+                    Swal.fire('แจ้งเตือน', 'บันทึกลงระบบเครื่องเรียบร้อยแล้ว (การเชื่อมต่อออนไลน์ขัดข้อง)', 'info');
+                    homeworkList.unshift(newItem);
+                    saveLocalBackup();
+                    renderHomeworkList();
+                    updateStats();
+                }
+            } else {
+                // Offline Local Save
+                homeworkList.unshift(newItem);
+                saveLocalBackup();
+                renderHomeworkList();
+                updateStats();
+                Swal.fire('บันทึกสำเร็จ!', 'การบ้านถูกบันทึกในอุปกรณ์นี้แล้ว (คุณสามารถตั้งค่า Google Script ได้ในภายหลัง)', 'success');
+            }
+        }
+
+        // Toggle Homework Complete Status
+        async function toggleStatus(id) {
+            const item = homeworkList.find(h => h.id === id);
+            if (!item) return;
+
+            const newStatus = item.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED';
+            item.status = newStatus;
+            saveLocalBackup();
+            renderHomeworkList();
+            updateStats();
+
+            if (apiUrl) {
+                try {
+                    await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({
+                            action: 'UPDATE_STATUS',
+                            id: id,
+                            status: newStatus
+                        })
+                    });
+                } catch (err) {
+                    console.error('Update status error:', err);
+                }
+            }
+        }
+
+        // Delete Homework
+        async function deleteHomework(id) {
+            const confirm = await Swal.fire({
+                title: 'ยืนยันการลบ?',
+                text: 'คุณต้องการลบรายการการบ้านนี้ใช่หรือไม่',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                cancelButtonColor: '#475569',
+                confirmButtonText: 'ใช่, ลบเลย',
+                cancelButtonText: 'ยกเลิก'
+            });
+
+            if (!confirm.isConfirmed) return;
+
+            homeworkList = homeworkList.filter(h => h.id !== id);
+            saveLocalBackup();
+            renderHomeworkList();
+            updateStats();
+
+            if (apiUrl) {
+                try {
+                    await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'DELETE', id: id })
+                    });
+                } catch (err) {
+                    console.error('Delete error:', err);
+                }
+            }
+        }
+
+        // Render Cards Grid
+        function renderHomeworkList() {
+            const grid = document.getElementById('homeworkGrid');
+            const emptyState = document.getElementById('emptyState');
+
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            const subjectFilter = document.getElementById('filterSubject').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+
+            const filtered = homeworkList.filter(item => {
+                const matchesSearch = item.title.toLowerCase().includes(searchQuery) ||
+                                      item.description.toLowerCase().includes(searchQuery) ||
+                                      item.subject.toLowerCase().includes(searchQuery);
+                const matchesSubject = !subjectFilter || item.subject === subjectFilter;
+                const matchesStatus = statusFilter === 'ALL' || item.status === statusFilter;
+
+                return matchesSearch && matchesSubject && matchesStatus;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            grid.innerHTML = filtered.map(item => createCardHTML(item)).join('');
+        }
+
+        // Build HTML for Card
+        function createCardHTML(item) {
+            const isCompleted = item.status === 'COMPLETED';
+            const timeDiffInfo = calculateDueInfo(item.dueDate, item.dueTime);
+            const badgeColor = subjectBadgeStyle[item.subject] || subjectBadgeStyle['อื่นๆ'];
+
+            let priorityTag = '';
+            if (item.priority === 'URGENT') priorityTag = '<span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">ด่วนมาก 🔴</span>';
+            else if (item.priority === 'HIGH') priorityTag = '<span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">สำคัญ 🟡</span>';
+
+            return `
+                <div class="glass-card rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden transition hover:-translate-y-1 hover:border-indigo-500/50 ${isCompleted ? 'opacity-60' : ''}">
+                    <!-- Top Ribbon info -->
+                    <div>
+                        <div class="flex items-center justify-between gap-2 mb-3">
+                            <span class="text-xs px-2.5 py-1 rounded-lg border font-medium ${badgeColor}">
+                                ${item.subject}
+                            </span>
+                            <div class="flex items-center space-x-1">
+                                ${priorityTag}
+                                <button onclick="deleteHomework('${item.id}')" class="text-slate-500 hover:text-rose-400 p-1 rounded-lg transition text-xs">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Homework Title -->
+                        <h3 class="font-semibold text-base text-white line-clamp-2 ${isCompleted ? 'line-through text-slate-400' : ''}">
+                            ${escapeHtml(item.title)}
+                        </h3>
+
+                        <!-- Description -->
+                        ${item.description ? `<p class="text-xs text-slate-400 mt-2 line-clamp-2">${escapeHtml(item.description)}</p>` : ''}
+
+                        <!-- Image Preview if available -->
+                        ${item.imageUrl ? `
+                            <div class="mt-3">
+                                <a href="${item.imageUrl}" target="_blank" class="inline-flex items-center space-x-1.5 text-xs text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 px-2.5 py-1.5 rounded-lg border border-indigo-500/20">
+                                    <i class="fa-solid fa-paperclip"></i>
+                                    <span>ดูรูปใบงาน / โจทย์</span>
+                                </a>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- Bottom Info & Actions -->
+                    <div class="mt-5 pt-3 border-t border-slate-700/50 flex items-center justify-between">
+                        <!-- Due Date Badge -->
+                        <div class="flex items-center space-x-2 text-xs">
+                            <i class="fa-regular fa-calendar-check text-slate-400"></i>
+                            <div>
+                                <p class="text-slate-300">${formatThaiDate(item.dueDate)} (${item.dueTime} น.)</p>
+                                <p class="${timeDiffInfo.color} font-medium text-[11px]">${isCompleted ? 'ส่งเรียบร้อยแล้ว' : timeDiffInfo.text}</p>
+                            </div>
+                        </div>
+
+                        <!-- Complete Checkbox -->
+                        <button onclick="toggleStatus('${item.id}')" class="w-9 h-9 rounded-xl flex items-center justify-center transition ${isCompleted ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'}">
+                            <i class="fa-solid ${isCompleted ? 'fa-check' : 'fa-check'}"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Calculate Due Date Remaining Days
+        function calculateDueInfo(dateStr, timeStr) {
+            if (!dateStr) return { text: '', color: 'text-slate-400' };
+            
+            const dueObj = new Date(`${dateStr}T${timeStr || '23:59'}`);
+            const now = new Date();
+            const diffTime = dueObj - now;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffTime < 0) {
+                return { text: '⚠️ เกินกำหนดส่งแล้ว!', color: 'text-rose-400 font-bold' };
+            } else if (diffDays <= 1) {
+                return { text: '🔥 กำหนดส่งวันนี้/พรุ่งนี้!', color: 'text-amber-400 font-bold' };
+            } else {
+                return { text: `เหลือเวลาอีก ${diffDays} วัน`, color: 'text-indigo-300' };
+            }
+        }
+
+        // Update Dashboard Stats
+        function updateStats() {
+            const total = homeworkList.length;
+            const pending = homeworkList.filter(h => h.status === 'PENDING').length;
+            const completed = homeworkList.filter(h => h.status === 'COMPLETED').length;
+            
+            const now = new Date();
+            const urgent = homeworkList.filter(h => {
+                if (h.status === 'COMPLETED') return false;
+                const dueObj = new Date(`${h.dueDate}T${h.dueTime || '23:59'}`);
+                return (dueObj - now) < (24 * 60 * 60 * 1000); // Less than 24 hours or overdue
+            }).length;
+
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statPending').innerText = pending;
+            document.getElementById('statCompleted').innerText = completed;
+            document.getElementById('statUrgent').innerText = urgent;
+        }
+
+        // Image Drag & Drop / Selection Handler
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (file.size > 5 * 1024 * 1024) {
+                Swal.fire('ไฟล์มีขนาดใหญ่เกินไป', 'กรุณาเลือกไฟล์รูปภาพขนาดไม่เกิน 5MB', 'warning');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                base64ImageData = {
+                    data: evt.target.result,
+                    fileName: file.name,
+                    mimeType: file.type
+                };
+                document.getElementById('imagePreview').src = evt.target.result;
+                document.getElementById('uploadPlaceholder').classList.add('hidden');
+                document.getElementById('imagePreviewContainer').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearImageUpload() {
+            base64ImageData = null;
+            document.getElementById('inputImage').value = '';
+            document.getElementById('uploadPlaceholder').classList.remove('hidden');
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+        }
+
+        // Helper Modal Controls
+        function openModal() {
+            document.getElementById('homeworkForm').reset();
+            clearImageUpload();
+            // Set default due date to tomorrow
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            document.getElementById('inputDueDate').value = tomorrow.toISOString().split('T')[0];
+            
+            document.getElementById('homeworkModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('homeworkModal').classList.add('hidden');
+        }
+
+        function saveGasUrl() {
+            const url = document.getElementById('gasApiUrlInput').value.trim();
+            if (url) {
+                apiUrl = url;
+                localStorage.setItem('GAS_API_URL', url);
+                Swal.fire('บันทึกสำเร็จ!', 'เชื่อมต่อ Google Apps Script เรียบร้อย', 'success');
+                document.getElementById('gasModal').classList.add('hidden');
+                loadHomeworkData();
+            }
+        }
+
+        function copyGasCode() {
+            const code = document.querySelector('#gasModal pre').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'คัดลอกโค้ดเรียบร้อยแล้ว',
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+            });
+        }
+
+        function saveLocalBackup() {
+            localStorage.setItem('MOCK_HOMEWORK_DATA', JSON.stringify(homeworkList));
+        }
+
+        // Utilities
+        function formatThaiDate(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            const d = parseInt(parts[2]);
+            const m = parseInt(parts[1]) - 1;
+            const y = parseInt(parts[0]) + 543;
+            const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            return `${d} ${thaiMonths[m]} ${y.toString().substring(2)}`;
+        }
+
+        function formatDateString(dStr) {
+            if (!dStr) return '';
+            if (dStr.includes('T')) return dStr.split('T')[0];
+            return dStr;
+        }
+
+        function escapeHtml(str) {
+            return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : '';
+        }
+
+        function getSampleData() {
+            const today = new Date().toISOString().split('T')[0];
+            const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+            
+            return [
+                {
+                    id: 'HW_101',
+                    title: 'แบบฝึกหัดแคลคูลัส อนุพันธ์ของฟังก์ชัน ข้อ 1-10',
+                    subject: 'คณิตศาสตร์',
+                    priority: 'HIGH',
+                    dueDate: tomorrow,
+                    dueTime: '23:59',
+                    description: 'ทำลงในสมุดรายวิชาคณิตศาสตร์เพิ่มเติม พร้อมแสดงวิธีทำอย่างละเอียด',
+                    imageUrl: '',
+                    status: 'PENDING'
+                },
+                {
+                    id: 'HW_102',
+                    title: 'รายงานเรื่อง วิวัฒนาการของเซลล์สิ่งมีชีวิต',
+                    subject: 'วิทยาศาสตร์',
+                    priority: 'NORMAL',
+                    dueDate: today,
+                    dueTime: '16:30',
+                    description: 'ส่งเป็นไฟล์ PDF หรือรูปภาพสแกนผ่านทาง Google Classroom',
+                    imageUrl: '',
+                    status: 'PENDING'
+                }
+            ];
+        }
+    </script>
+</body>
+</html>
